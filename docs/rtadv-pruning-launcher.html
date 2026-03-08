@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RTADV 直達刪文工具捷徑</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f1ea;
+      --panel: #fffdf8;
+      --text: #1f2a2a;
+      --muted: #5f6b6b;
+      --line: #d8d1c5;
+      --accent: #285a52;
+      --accent-2: #d97a3a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #efe7da 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 760px;
+      margin: 48px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(31, 42, 42, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: grid;
+      gap: 12px;
+      margin: 24px 0;
+    }
+
+    a.button {
+      display: block;
+      padding: 14px 16px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+
+    a.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    a.secondary {
+      background: #fff;
+      color: var(--text);
+      border-color: var(--line);
+    }
+
+    code {
+      display: block;
+      background: #f8f5ee;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      overflow-wrap: anywhere;
+      color: #213636;
+    }
+
+    .note {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(217, 122, 58, 0.12);
+      color: #8a4a20;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <div class="badge">本機捷徑頁</div>
+      <h1>RTADV 直達刪文工具</h1>
+      <p>直接從這個本機頁面打開固定網址，不再走 WordPress 後台選單。</p>
+
+      <div class="actions">
+        <a class="button primary" href="https://www.rtadv.com/?rtadv_pruning_tool=1" target="_blank" rel="noopener noreferrer">開啟 RTADV 直達刪文工具</a>
+        <a class="button secondary" href="https://www.rtadv.com/rtadv-pruning-tool/" target="_blank" rel="noopener noreferrer">開啟 Path 入口</a>
+        <a class="button secondary" href="https://www.rtadv.com/wp-admin/admin.php?page=rtadv-pruning-tool-direct" target="_blank" rel="noopener noreferrer">開啟 Admin 入口</a>
+        <a class="button secondary" href="https://www.rtadv.com/wp-admin/" target="_blank" rel="noopener noreferrer">先登入 WordPress 後台</a>
+      </div>
+
+      <div>
+        <strong>固定路徑</strong>
+        <code>https://www.rtadv.com/rtadv-pruning-tool/</code>
+        <code>https://www.rtadv.com/?rtadv_pruning_tool=1</code>
+        <code>https://www.rtadv.com/wp-admin/admin.php?page=rtadv-pruning-tool-direct</code>
+      </div>
+
+      <div class="note">
+        這個頁面只是本機捷徑。真正的工具頁會直接顯示在網站前台路徑，不依賴後台左側選單。
+      </div>
+    </section>
+  </main>
+</body>
+</html>
