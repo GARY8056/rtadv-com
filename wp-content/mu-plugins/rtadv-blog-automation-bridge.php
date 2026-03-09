@@ -112,6 +112,28 @@ if (! class_exists('RTADV_Blog_Automation_Bridge')) {
 					const nonce = <?php echo wp_json_encode($nonce); ?>;
 					const defaults = <?php echo wp_json_encode($defaults); ?>;
 
+					function escapeHtml(value) {
+						return String(value)
+							.replace(/&/g, '&amp;')
+							.replace(/</g, '&lt;')
+							.replace(/>/g, '&gt;')
+							.replace(/"/g, '&quot;')
+							.replace(/'/g, '&#039;');
+					}
+
+					function safeUrl(value) {
+						try {
+							const url = new URL(String(value), window.location.origin);
+							if (url.protocol === 'http:' || url.protocol === 'https:') {
+								return url.toString();
+							}
+						} catch (error) {
+							return '';
+						}
+
+						return '';
+					}
+
 					if (!form || !result) {
 						return;
 					}
@@ -148,29 +170,37 @@ if (! class_exists('RTADV_Blog_Automation_Bridge')) {
 							const body = await response.json();
 
 							if (!response.ok || !body.ok) {
-								const error = body.error || '建立草稿失敗';
-								const detail = Array.isArray(body.issues) ? '<pre>' + JSON.stringify(body.issues, null, 2) + '</pre>' : '';
+								const error = escapeHtml(body.error || '建立草稿失敗');
+								const detail = Array.isArray(body.issues)
+									? '<pre>' + escapeHtml(JSON.stringify(body.issues, null, 2)) + '</pre>'
+									: '';
 								result.innerHTML = '<div class="notice notice-error inline"><p>' + error + '</p>' + detail + '</div>';
 								return;
 							}
 
 							const links = [];
 							if (body.editPostUrl) {
-								links.push('<a href="' + body.editPostUrl + '">編輯草稿</a>');
+								const editUrl = safeUrl(body.editPostUrl);
+								if (editUrl) {
+									links.push('<a href="' + editUrl + '">編輯草稿</a>');
+								}
 							}
 							if (body.previewUrl) {
-								links.push('<a href="' + body.previewUrl + '" target="_blank" rel="noopener noreferrer">預覽頁</a>');
+								const previewUrl = safeUrl(body.previewUrl);
+								if (previewUrl) {
+									links.push('<a href="' + previewUrl + '" target="_blank" rel="noopener noreferrer">預覽頁</a>');
+								}
 							}
 
 							result.innerHTML =
 								'<div class="notice notice-success inline">' +
-								'<p>已建立草稿：<strong>' + (body.postTitle || '未命名') + '</strong></p>' +
-								'<p>文章 ID：' + body.postId + '</p>' +
-								'<p>匯入圖片：' + (body.importedImages || 0) + '</p>' +
+								'<p>已建立草稿：<strong>' + escapeHtml(body.postTitle || '未命名') + '</strong></p>' +
+								'<p>文章 ID：' + escapeHtml(body.postId || '') + '</p>' +
+								'<p>匯入圖片：' + escapeHtml(body.importedImages || 0) + '</p>' +
 								(links.length ? '<p>' + links.join(' | ') + '</p>' : '') +
 								'</div>';
 						} catch (error) {
-							result.innerHTML = '<div class="notice notice-error inline"><p>' + String(error) + '</p></div>';
+							result.innerHTML = '<div class="notice notice-error inline"><p>' + escapeHtml(String(error)) + '</p></div>';
 						}
 					});
 				})();
