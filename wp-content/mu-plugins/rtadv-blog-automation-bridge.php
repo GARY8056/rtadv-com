@@ -602,15 +602,12 @@ if (! class_exists('RTADV_Blog_Automation_Bridge')) {
 				'image/png'  => 'png',
 				'image/jpeg' => 'jpg',
 			);
-			$mime      = sanitize_text_field((string) $image_plan['imageMimeType']);
-			$extension = isset($mime_to_extension[ $mime ]) ? $mime_to_extension[ $mime ] : 'bin';
-			$variant   = isset($image_plan['variant']) ? sanitize_key((string) $image_plan['variant']) : 'image';
-			$file_name = sanitize_file_name($slug . '-' . $variant . '.' . $extension);
-			$upload    = wp_upload_bits($file_name, null, $binary);
-
-			if (! empty($upload['error'])) {
-				return new WP_Error('rtadv_blog_automation_upload_failed', (string) $upload['error']);
-			}
+			$mime         = sanitize_text_field((string) $image_plan['imageMimeType']);
+			$extension    = isset($mime_to_extension[ $mime ]) ? $mime_to_extension[ $mime ] : 'bin';
+			$variant      = isset($image_plan['variant']) ? sanitize_key((string) $image_plan['variant']) : 'image';
+			$file_stem    = sanitize_file_name($slug . '-' . $variant);
+			$file_name    = sanitize_file_name($file_stem . '.' . $extension);
+			$content_hash = sha1($binary);
 
 			require_once ABSPATH . 'wp-admin/includes/image.php';
 			require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -624,6 +621,7 @@ if (! class_exists('RTADV_Blog_Automation_Bridge')) {
 			$attachment_alt = ! empty($image_plan['altText'])
 				? sanitize_text_field((string) $image_plan['altText'])
 				: (! empty($image_plan['label']) ? sanitize_text_field((string) $image_plan['label']) : '');
+			$existing_attachment_id = $this->find_existing_image_attachment($post_id, $slug, $variant, $content_hash);
 
 			$attachment = array(
 				'post_mime_type' => $mime,
@@ -633,11 +631,29 @@ if (! class_exists('RTADV_Blog_Automation_Bridge')) {
 				'post_excerpt'   => $attachment_caption,
 				'post_content'   => $attachment_description,
 			);
+
+			if ($existing_attachment_id > 0) {
+				$attachment['ID'] = $existing_attachment_id;
+				$updated_id = wp_update_post($attachment, true);
+				if (is_wp_error($updated_id)) {
+					return $updated_id;
+				}
+				if ('' !== $attachment_alt) {
+					update_post_meta($existing_attachment_id, '_wp_attachment_image_alt', $attachment_alt);
+				}
+				$this->store_imported_image_attachment_meta($existing_attachment_id, $slug, $variant, $content_hash, $file_name);
+				return (int) $existing_attachment_id;
+			}
+
+			$upload = wp_upload_bits($file_name, null, $binary);
+			if (! empty($upload['error'])) {
+				return new WP_Error('rtadv_blog_automation_upload_failed', (string) $upload['error']);
+			}
+
 			$attachment_id = wp_insert_attachment($attachment, $upload['file'], $post_id, true);
 			if (is_wp_error($attachment_id)) {
 				return $attachment_id;
 			}
-
 			$metadata = wp_generate_attachment_metadata($attachment_id, $upload['file']);
 			if (! is_wp_error($metadata) && ! empty($metadata)) {
 				wp_update_attachment_metadata($attachment_id, $metadata);
@@ -646,8 +662,53 @@ if (! class_exists('RTADV_Blog_Automation_Bridge')) {
 			if ('' !== $attachment_alt) {
 				update_post_meta($attachment_id, '_wp_attachment_image_alt', $attachment_alt);
 			}
+			$this->store_imported_image_attachment_meta($attachment_id, $slug, $variant, $content_hash, $file_name);
 
 			return (int) $attachment_id;
+		}
+
+		private function find_existing_image_attachment($post_id, $slug, $variant, $content_hash) {
+			$normalized_slug = sanitize_title($slug);
+			$attachments = get_posts(
+				array(
+					'post_type'      => 'attachment',
+					'post_parent'    => $post_id,
+					'post_status'    => 'inherit',
+					'posts_per_page' => 1,
+					'fields'         => 'ids',
+					'meta_query'     => array(
+						'relation' => 'OR',
+						array(
+							'key'   => '_rtadv_blog_automation_image_hash',
+							'value' => $content_hash,
+						),
+						array(
+							'relation' => 'AND',
+							array(
+								'key'   => '_rtadv_blog_automation_image_slug',
+								'value' => $normalized_slug,
+							),
+							array(
+								'key'   => '_rtadv_blog_automation_image_variant',
+								'value' => $variant,
+							),
+						),
+					),
+				)
+			);
+
+			if (! empty($attachments[0])) {
+				return (int) $attachments[0];
+			}
+
+			return 0;
+		}
+
+		private function store_imported_image_attachment_meta($attachment_id, $slug, $variant, $content_hash, $file_name) {
+			update_post_meta($attachment_id, '_rtadv_blog_automation_image_slug', sanitize_title($slug));
+			update_post_meta($attachment_id, '_rtadv_blog_automation_image_variant', sanitize_key($variant));
+			update_post_meta($attachment_id, '_rtadv_blog_automation_image_hash', sanitize_text_field($content_hash));
+			update_post_meta($attachment_id, '_rtadv_blog_automation_image_file_name', sanitize_file_name($file_name));
 		}
 
 		private function get_bridge_settings() {
