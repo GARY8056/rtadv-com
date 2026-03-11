@@ -65,10 +65,10 @@ function rtadv_box_articles_publish() {
 function rtadv_get_box_articles() {
 	return [
 		[
-			'title'    => '袖套盒完整設計指南：結構原理、材質選擇與印刷費用說明',
+			'title'    => '袖套盒怎麼做？結構原理、材質選擇與印刷費用拆解',
 			'slug'     => 'sleeve-box-design-guide',
 			'focus_kw' => '袖套盒,袖套盒設計,sleeve box',
-			'rm_title' => '袖套盒設計完整指南：結構、材質、費用與應用場景｜圓廣印刷',
+			'rm_title' => '袖套盒怎麼做？結構、材質、費用與應用場景｜圓廣印刷',
 			'rm_desc'  => '袖套盒（Sleeve Box）以滑動式外套筒設計，兼具精品感與成本效益。本文說明袖套盒結構原理、內盒外套組合方式、適用材質、印刷費用與常見踩坑，協助台灣品牌主做出最佳包裝決策。',
 			'category' => 95,
 			'content'  => <<<'ENDHTML'
@@ -276,17 +276,17 @@ function rtadv_get_box_articles() {
 <p>如果您正在評估不同包裝盒型，以下兩篇指南可提供更多比較基礎：</p>
 
 <ul>
-  <li><a href="https://www.rtadv.com/folding-carton-complete-guide/">彩盒完整指南：彩盒設計、材質、費用與印刷說明</a></li>
-  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒完整指南：精裝盒結構、材質、費用與適用場景</a></li>
+  <li><a href="https://www.rtadv.com/folding-carton-complete-guide/">彩盒設計、材質、費用與印刷工藝說明</a></li>
+  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒結構、材質、費用與適用場景</a></li>
 </ul>
 ENDHTML
 		],
 
 		[
-			'title'    => '抽屜盒完整指南：滑抽式結構設計、費用說明與適用產業',
+			'title'    => '抽屜盒設計實務：滑抽式結構、費用計算與產業應用',
 			'slug'     => 'drawer-box-design-guide',
 			'focus_kw' => '抽屜盒,抽屜式包裝盒,drawer box',
-			'rm_title' => '抽屜盒完整指南：結構設計、費用說明與適用場景｜圓廣印刷',
+			'rm_title' => '抽屜盒設計實務：結構、費用與適用場景｜圓廣印刷',
 			'rm_desc'  => '抽屜盒（Drawer Box）採滑抽式開合結構，常見於保健品、飾品、3C配件包裝。本文說明抽屜盒結構原理、外殼與內抽組合方式、材質費用比較，協助台灣品牌主評估是否適合使用抽屜盒。',
 			'category' => 835,
 			'content'  => <<<'ENDHTML'
@@ -504,17 +504,17 @@ ENDHTML
 <p>如果您正在評估精裝包裝的完整選項，以下兩篇指南可提供更多資訊：</p>
 
 <ul>
-  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒完整指南：精裝盒結構、材質、費用與適用場景</a></li>
-  <li><a href="https://www.rtadv.com/packaging-insert-complete-guide/">包裝內襯完整指南：EVA、吸塑、紙托比較與選材建議</a></li>
+  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒結構、材質、費用與適用場景</a></li>
+  <li><a href="https://www.rtadv.com/packaging-insert-complete-guide/">包裝內襯選材：EVA、吸塑、紙托比較與建議</a></li>
 </ul>
 ENDHTML
 		],
 
 		[
-			'title'    => '天地盒完整指南：上蓋下底分離結構、材質費用與適用場景',
+			'title'    => '天地盒結構解析：上蓋下底設計、材質費用與選擇建議',
 			'slug'     => 'lid-and-base-box-design-guide',
 			'focus_kw' => '天地盒,天地蓋包裝盒,lid and base box',
-			'rm_title' => '天地盒完整指南：分蓋式結構設計、材質費用與適用場景｜圓廣印刷',
+			'rm_title' => '天地盒結構解析：分蓋式設計、材質費用與選擇建議｜圓廣印刷',
 			'rm_desc'  => '天地盒（Lid & Base Box）為上下分離的兩件式盒型，是台灣最常見的禮盒結構之一。本文說明天地盒的尺寸設計原則、公差控制、材質選擇與費用範圍，並對比精裝版與折疊紙板版的適用場景。',
 			'category' => 835,
 			'content'  => <<<'ENDHTML'
@@ -720,17 +720,17 @@ ENDHTML
 <p>若您正在規劃精裝禮盒或天地盒相關包裝，以下資源提供更完整的參考：</p>
 
 <ul>
-  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒完整指南：材質、工藝與費用全解析</a></li>
-  <li><a href="https://www.rtadv.com/gift-box-packaging-complete-guide/">禮盒包裝完整指南：結構選擇、成本規劃與品牌應用</a></li>
+  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒材質、工藝與費用解析</a></li>
+  <li><a href="https://www.rtadv.com/gift-box-packaging-complete-guide/">禮盒包裝結構選擇、成本規劃與品牌應用</a></li>
 </ul>
 ENDHTML
 		],
 
 		[
-			'title'    => '翻蓋盒完整設計指南：結構類型、材質費用與選購建議',
+			'title'    => '翻蓋盒怎麼選？掀蓋結構類型、材質費用與常見踩坑',
 			'slug'     => 'flip-top-box-design-guide',
 			'focus_kw' => '翻蓋盒,翻蓋包裝盒,flip top box',
-			'rm_title' => '翻蓋盒完整指南：結構類型、材質選擇與費用說明｜圓廣印刷',
+			'rm_title' => '翻蓋盒怎麼選？結構類型、材質與費用說明｜圓廣印刷',
 			'rm_desc'  => '翻蓋盒（Flip-top Box）以連蓋式結構方便單手開合，常見於電子產品、精品飾品與食品包裝。本文說明翻蓋盒的結構種類（折疊式/精裝式）、材質費用比較與常見設計踩坑，協助台灣品牌主選擇最適合的翻蓋包裝。',
 			'category' => 95,
 			'content'  => <<<'ENDHTML'
@@ -963,17 +963,17 @@ ENDHTML
 <p>若您正在規劃翻蓋盒或相關彩盒、精裝盒包裝方案，以下資源提供更完整的比較參考：</p>
 
 <ul>
-  <li><a href="https://www.rtadv.com/folding-carton-complete-guide/">彩盒完整指南：折疊彩盒材質、印刷加工與費用全解析</a></li>
-  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒完整指南：灰板工藝、表面加工與費用範圍說明</a></li>
+  <li><a href="https://www.rtadv.com/folding-carton-complete-guide/">折疊彩盒材質、印刷加工與費用拆解</a></li>
+  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒灰板工藝、表面加工與費用說明</a></li>
 </ul>
 ENDHTML
 		],
 
 		[
-			'title'    => '磁吸盒完整指南：磁鐵規格、費用說明與開箱體驗設計要點',
+			'title'    => '磁吸盒訂製攻略：磁鐵規格、費用拆解與開箱體驗設計',
 			'slug'     => 'magnetic-closure-box-guide',
 			'focus_kw' => '磁吸盒,磁扣盒,magnetic closure box',
-			'rm_title' => '磁吸盒完整指南：磁鐵規格、費用說明與開箱設計｜圓廣印刷',
+			'rm_title' => '磁吸盒訂製攻略：磁鐵規格、費用與開箱設計｜圓廣印刷',
 			'rm_desc'  => '磁吸盒以內嵌磁鐵實現無聲吸合開箱體驗，是高端禮品、精品飾品與電子產品包裝的主流選擇。本文說明磁鐵規格（N35/N52）、磁吸強度選擇、費用範圍與常見設計踩坑，幫助台灣品牌主設計出讓消費者驚艷的開箱體驗。',
 			'category' => 835,
 			'content'  => <<<'ENDHTML'
@@ -1169,17 +1169,17 @@ ENDHTML
 
 <p>想進一步了解精裝盒的完整知識體系，歡迎參考：</p>
 <ul>
-  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒完整指南：結構、費用與品質選擇</a></li>
-  <li><a href="https://www.rtadv.com/gift-box-packaging-complete-guide/">禮盒包裝完整指南：材質、加工與節慶應用</a></li>
+  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒結構、費用與品質選擇</a></li>
+  <li><a href="https://www.rtadv.com/gift-box-packaging-complete-guide/">禮盒包裝材質、加工與節慶應用</a></li>
 </ul>
 ENDHTML
 		],
 
 		[
-			'title'    => '書型盒完整指南：仿書籍設計、費用說明與高端禮品包裝應用',
+			'title'    => '書型盒從設計到量產：仿書結構、費用計算與高端禮品應用',
 			'slug'     => 'book-style-box-guide',
 			'focus_kw' => '書型盒,書形盒,book style box',
-			'rm_title' => '書型盒完整指南：仿書設計結構、費用說明與應用場景｜圓廣印刷',
+			'rm_title' => '書型盒從設計到量產：仿書結構、費用與應用場景｜圓廣印刷',
 			'rm_desc'  => '書型盒（Book-style Box）外觀模擬精裝書籍，翻開方式如閱讀書本，常用於高端茶葉、紅酒、保健品禮盒。本文說明書型盒的結構設計、書脊製作要點、費用說明與常見品質問題，協助台灣品牌主評估是否適合使用書型盒包裝。',
 			'category' => 835,
 			'content'  => <<<'ENDHTML'
@@ -1359,8 +1359,8 @@ ENDHTML
 
 <p>想進一步了解精裝盒的完整知識體系或茶葉包裝的選材指南，歡迎參考：</p>
 <ul>
-  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒完整指南：結構、費用與品質選擇</a></li>
-  <li><a href="https://www.rtadv.com/tea-packaging-complete-guide/">茶葉包裝完整指南：材質、加工與品牌設計</a></li>
+  <li><a href="https://www.rtadv.com/rigid-box-complete-guide/">精裝盒結構、費用與品質選擇</a></li>
+  <li><a href="https://www.rtadv.com/tea-packaging-complete-guide/">茶葉包裝材質、加工與品牌設計</a></li>
 </ul>
 ENDHTML
 		],

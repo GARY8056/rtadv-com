@@ -1,6 +1,6 @@
 SHELL := /bin/zsh
 
-.PHONY: build lint deploy-local
+.PHONY: build lint deploy-local wp-auth
 
 build:
 	./scripts/build-local.sh
@@ -10,3 +10,6 @@ lint:
 
 deploy-local:
 	./scripts/deploy-local.sh
+
+wp-auth:
+	@echo "Run: eval \$$(./scripts/wp-auth.sh)"

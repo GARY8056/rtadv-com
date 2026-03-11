@@ -1,13 +1,56 @@
 # rtadv-com - Ops Memory (Hot Cache)
 
-**Last Updated**: 2026-03-06
+**Last Updated**: 2026-03-09
 **Target Site**: `www.rtadv.com`
-**Local Working Folder**: `/Users/gary/Documents/GitHub/rtadv-com`
-**Status**: Active inode cleanup via FTP (safe scope)
+**Local Working Folder**: `/Users/ss/Documents/GitHub/rtadv-com`
+**Status**: Active — 文章發布自動化 + inode cleanup
+
+## 文章發布系統
+
+### Skills（Claude Code slash commands）
+
+| Skill | 用途 |
+|-------|------|
+| `/rtadv-publish-article <關鍵字>` | 全流程發文（撰寫→配圖→發布→SEO→驗證） |
+| `/rtadv-seo-audit <URL或post_id>` | SEO/GEO/E-E-A-T 完整審計 + 自動修復 |
+
+### Scripts（`scripts/` 目錄）
+
+| 腳本 | 用途 |
+|------|------|
+| `wp-auth.sh` | WP 登入，export COOKIE_FILE + WP_NONCE |
+| `wp-publish.sh` | REST API 發布文章 |
+| `wp-rankmath.sh` | Rank Math SEO meta 設定 |
+| `wp-cache-purge.sh` | WP Rocket 快取清除 |
+| `gemini-generate.sh` | **Gemini 圖片生成（主要）** |
+| `dalle-generate.sh` | DALL-E 3 圖片生成（備用） |
+| `wp-upload-image.sh` | 上傳圖片到 WP 媒體庫 |
+| `build-local.sh` | PHP lint + build artifact |
+| `deploy-local.sh` | 部署 mu-plugins 到本地 WP |
+
+### 圖片規範
+
+遵循 `0304seo` 視覺系統（`/Users/ss/Documents/GitHub/0304seo/docs/`）：
+- 共通硬規則：禁文字、禁箭頭、結構合理、焦點明確、可裁切、禁中文烘焙
+- 風格：practical + credible + conversion-first
+- 3 類 prompt：Hero / Detail / Context
+- 生成前必須組裝 single input pack（不能只丟路徑）
+
+### WordPress API 端點
+
+- 文章 CRUD：`/wp-json/wp/v2/posts`
+- 媒體上傳：`/wp-json/wp/v2/media`
+- Rank Math：`/wp-json/rankmath/v1/updateMeta`
+- REST nonce：`/wp-admin/admin-ajax.php?action=rest-nonce`
+- 快取清除：`/?wprocket-purge-post=<id>`
+
+### 文章分類
+
+- ID 95：印刷包裝（主要使用）
 
 ## Working Rule
 
-- Use `/Users/gary/Documents/GitHub/rtadv-com` as the local folder for `www.rtadv.com` work.
+- Use `/Users/ss/Documents/GitHub/rtadv-com` as the local folder for `www.rtadv.com` work.
 - Do not persist FTP credentials in repo files.
 - Keep Divi settings untouched; cleanup is filesystem-level only (cache/log/backup residue).
 
