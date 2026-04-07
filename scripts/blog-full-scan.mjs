@@ -52,6 +52,14 @@ const VERIFY_PHASE = args['verify-phase'] || null;
 const DEEP_MEDIA_CHECK = args['deep-media-check'] === true;
 const OLD_MEDIA_ID = args['old-media-id'] ? parseInt(args['old-media-id'], 10) : null;
 const NEW_MEDIA_ID = args['new-media-id'] ? parseInt(args['new-media-id'], 10) : null;
+const AUTO_ACCEPTANCE = args['auto-acceptance'] === true;
+
+const OPENCLAW_ACCEPTANCE_PHASES = new Set([
+  'structure-fix',
+  'inline-alt-fix',
+  'h2-fix',
+  'inline-image-gap-fix',
+]);
 
 let COOKIE_FILE = '';
 let WP_NONCE = '';
@@ -64,6 +72,8 @@ const VALID_PHASES = [
   'inline-image-gap-analysis',
   'inline-image-gap-plan',
   'inline-image-gap-fix',
+  'inline-alt-fix',
+  'h2-fix',
   'seo-audit',
   'seo-fix',
   'post-audit',
@@ -173,6 +183,7 @@ function buildScope() {
 function getResumeOffset() {
   if (!RESUME) return START;
   const progress = readJson(PROGRESS_FILE, {});
+  if (progress.phases?.[PHASE]) return progress.phases[PHASE].next_index || START;
   if (progress.last_run?.phase !== PHASE) return START;
   return progress.last_run.next_index || START;
 }
@@ -184,7 +195,8 @@ function loadIdFilter() {
   return new Set(ids);
 }
 
-function filterByScope(items) {
+function filterByScope(items, options = {}) {
+  const { applyOffset = true } = options;
   const ids = loadIdFilter();
   let scoped = items;
 
@@ -193,6 +205,10 @@ function filterByScope(items) {
   if (YEAR) scoped = scoped.filter(item => String(item.date || '').startsWith(String(YEAR)));
   if (AFTER) scoped = scoped.filter(item => String(item.date || '') >= AFTER);
   if (BEFORE) scoped = scoped.filter(item => String(item.date || '') <= BEFORE);
+
+  if (!applyOffset) {
+    return COUNT > 0 ? scoped.slice(0, COUNT) : scoped;
+  }
 
   const offset = getResumeOffset();
   if (COUNT > 0) return scoped.slice(offset, offset + COUNT);
@@ -289,7 +305,7 @@ async function fetchPosts(includeContent = false) {
   const ids = loadIdFilter();
   if (ids && !ONLY) {
     const targeted = await fetchPostsByIds([...ids], includeContent);
-    const filtered = filterByScope(targeted);
+    const filtered = filterByScope(targeted, { applyOffset: false });
     return COUNT > 0 ? filtered.slice(0, COUNT) : filtered;
   }
   const perPage = ONLY ? 1 : (COUNT > 0 ? Math.min(Math.max(COUNT, 1), 100) : 100);
@@ -305,7 +321,7 @@ async function fetchPosts(includeContent = false) {
     if (batch.length < 100) break;
     if (items.length >= maxItems) break;
   }
-  const filtered = filterByScope(items);
+  const filtered = filterByScope(items, { applyOffset: false });
   return COUNT > 0 ? filtered.slice(0, COUNT) : filtered;
 }
 
@@ -387,7 +403,7 @@ async function fetchMedia() {
   const ids = loadIdFilter();
   if (ids && !ONLY) {
     const targeted = await fetchMediaByIds([...ids]);
-    const filtered = filterByScope(targeted);
+    const filtered = filterByScope(targeted, { applyOffset: false });
     return COUNT > 0 ? filtered.slice(0, COUNT) : filtered;
   }
   const perPage = ONLY ? 1 : (COUNT > 0 ? Math.min(Math.max(COUNT, 1), 100) : 100);
@@ -403,7 +419,7 @@ async function fetchMedia() {
     if (batch.length < 100) break;
     if (items.length >= maxItems) break;
   }
-  const filtered = filterByScope(items);
+  const filtered = filterByScope(items, { applyOffset: false });
   return COUNT > 0 ? filtered.slice(0, COUNT) : filtered;
 }
 
@@ -469,6 +485,48 @@ function extractInlineImageStats(content) {
     missingAlt,
     genericAlt,
     hasH2: /<h2\b/i.test(html),
+  };
+}
+
+function fixInlineImageAlt(content, postTitle) {
+  const html = String(content || '');
+  let imageIndex = 0;
+  let fixedCount = 0;
+  const nextContent = html.replace(/<img\b([^>]*)>/gi, (full, attrs) => {
+    imageIndex += 1;
+    const altMatch = attrs.match(/\balt\s*=\s*["']([^"']*)["']/i);
+    const currentAlt = altMatch?.[1]?.trim() || '';
+    const isGeneric = /^(image|img|photo|pic|picture)(\s*\d+)?$/i.test(currentAlt);
+    if (currentAlt && !isGeneric) return full;
+    fixedCount += 1;
+    const safeAlt = `${cleanTitle(postTitle) || '文章圖片'} 圖片 ${imageIndex}`.slice(0, 120);
+    if (altMatch) {
+      return full.replace(altMatch[0], `alt="${safeAlt}"`);
+    }
+    return full.replace('<img', `<img alt="${safeAlt}"`);
+  });
+  return { content: nextContent, fixedCount };
+}
+
+function fixMissingH2(content, postTitle) {
+  const html = String(content || '');
+  if (/<h2\b/i.test(html)) return { content: html, inserted: false };
+
+  const headingText = `${cleanTitle(postTitle) || '文章'} 重點整理`.slice(0, 80);
+  const heading = `<h2>${headingText}</h2>`;
+  const firstParagraphEnd = html.search(/<\/p>/i);
+
+  if (firstParagraphEnd >= 0) {
+    const insertAt = firstParagraphEnd + 4;
+    return {
+      content: `${html.slice(0, insertAt)}\n\n${heading}\n\n${html.slice(insertAt)}`,
+      inserted: true,
+    };
+  }
+
+  return {
+    content: `${heading}\n\n${html}`,
+    inserted: true,
   };
 }
 
@@ -970,8 +1028,11 @@ async function phaseFeaturedMediaMigration() {
   if (!OLD_MEDIA_ID || !NEW_MEDIA_ID) {
     throw new Error('featured-media-migration requires --old-media-id and --new-media-id');
   }
-  const allPosts = await fetchPostsByFeaturedMedia(OLD_MEDIA_ID);
-  const scopedPosts = filterByScope(allPosts);
+  const ids = loadIdFilter();
+  const allPosts = ids || ONLY
+    ? (await fetchPostsByIds(ids ? [...ids] : [ONLY], false)).filter(post => post.featured_media === OLD_MEDIA_ID)
+    : await fetchPostsByFeaturedMedia(OLD_MEDIA_ID);
+  const scopedPosts = (ids || ONLY) ? allPosts : filterByScope(allPosts);
   const items = [];
   let failed = 0;
 
@@ -1114,7 +1175,7 @@ async function phaseScan(runId) {
 }
 
 async function phaseScanPosts() {
-  const posts = filterByScope(await fetchPosts(true));
+  const posts = await fetchPosts(true);
   const items = [];
   for (let index = 0; index < posts.length; index++) {
     const post = posts[index];
@@ -1148,7 +1209,7 @@ async function phaseScanPosts() {
 async function phaseScanMedia() {
   const posts = await fetchPosts(false);
   const parentTitleMap = new Map(posts.map(post => [post.id, cleanTitle(post.title?.raw || post.title?.rendered)]));
-  const media = filterByScope(await fetchMedia());
+  const media = await fetchMedia();
   const items = [];
 
   for (let index = 0; index < media.length; index++) {
@@ -1285,7 +1346,7 @@ async function phaseSeoFix(runId) {
 }
 
 async function phasePostAudit() {
-  const posts = filterByScope(await fetchPosts(true));
+  const posts = await fetchPosts(true);
   return phasePostAuditForPosts(posts);
 }
 
@@ -1317,7 +1378,7 @@ function phasePostAuditForPosts(posts) {
 }
 
 async function phaseStructureFix(runId) {
-  const posts = filterByScope(await fetchPosts(true));
+  const posts = await fetchPosts(true);
   const snapshot = [];
   const items = [];
   let failed = 0;
@@ -1371,12 +1432,12 @@ async function phaseStructureFix(runId) {
 }
 
 async function phaseMediaAudit() {
-  const media = filterByScope(await fetchMedia());
+  const media = await fetchMedia();
   return phaseMediaAuditForItems(media);
 }
 
 async function phaseOrphanedMediaAnalysis() {
-  const media = filterByScope(await fetchMedia());
+  const media = await fetchMedia();
   const orphaned = media.filter(item => !item.post);
   if (!orphaned.length) {
     return buildReportSkeleton({
@@ -1464,7 +1525,7 @@ async function phaseOrphanedMediaAnalysis() {
 }
 
 async function phaseInlineImageGapAnalysis() {
-  const posts = filterByScope(await fetchPosts(true));
+  const posts = await fetchPosts(true);
   const targetPosts = posts.filter(post => {
     const inline = extractInlineImageStats(post.content?.raw || post.content?.rendered || '');
     return inline.totalImages < BLOG_RULES.post.minInlineImages;
@@ -1601,6 +1662,7 @@ async function phaseInlineImageGapFix(runId) {
 
     try {
       if (APPLY) await ensureAuth();
+      log(`Inline image gap fix ${index + 1}/${plan.report.items.length}: post ${post.id} ${post.slug}`);
       for (const spec of item.image_plan) {
         const basename = `/tmp/rtadv-gap-${post.id}-${spec.role}`;
         let mediaRecord = null;
@@ -1623,6 +1685,7 @@ async function phaseInlineImageGapFix(runId) {
             id: uploaded.id,
             source_url: uploaded.source_url,
           };
+          log(`  Uploaded ${spec.role} image for post ${post.id}: media ${uploaded.id}`);
         }
 
         if (mediaRecord) {
@@ -1635,6 +1698,7 @@ async function phaseInlineImageGapFix(runId) {
       if (APPLY && generatedFigures.length) {
         const nextContent = insertFiguresIntoContent(post.content?.raw || post.content?.rendered || '', generatedFigures);
         await api('POST', `/wp/v2/posts/${post.id}`, { content: nextContent });
+        log(`  Updated post content for ${post.id} with ${generatedFigures.length} new figures`);
       }
     } catch (error) {
       failed++;
@@ -1658,6 +1722,98 @@ async function phaseInlineImageGapFix(runId) {
         fixed: APPLY ? items.filter(item => !item.error).length : 0,
         failed,
       },
+      items,
+      ruleVersion: BLOG_RULES.version,
+    }),
+    snapshotPath,
+  };
+}
+
+async function phaseInlineAltFix(runId) {
+  const posts = await fetchPosts(true);
+  const snapshot = [];
+  const items = [];
+  let failed = 0;
+
+  for (let index = 0; index < posts.length; index++) {
+    const post = posts[index];
+    const content = String(post.content?.raw || post.content?.rendered || '');
+    const inline = extractInlineImageStats(content);
+    if (!inline.missingAlt && !inline.genericAlt) continue;
+
+    const entry = { id: post.id, slug: post.slug, missing_alt: inline.missingAlt, generic_alt: inline.genericAlt };
+    snapshot.push(buildPostSnapshot(post));
+    try {
+      const fixed = fixInlineImageAlt(content, cleanTitle(post.title?.raw || post.title?.rendered || post.slug));
+      entry.fixed_alt_count = fixed.fixedCount;
+      if (APPLY && fixed.fixedCount > 0) {
+        await api('POST', `/wp/v2/posts/${post.id}`, { content: fixed.content });
+      }
+    } catch (error) {
+      failed += 1;
+      entry.error = error.message;
+    }
+    items.push(entry);
+    if ((index + 1) % 20 === 0) await sleep(300);
+    if (failed >= FAIL_THRESHOLD) break;
+  }
+
+  const snapshotPath = saveSnapshot(runId, PHASE, snapshot);
+  return {
+    report: buildReportSkeleton({
+      phase: PHASE,
+      mode: DRY_RUN ? 'dry-run' : 'apply',
+      scope: buildScope(),
+      summary: {
+        scanned: posts.length,
+        flagged: items.length,
+        fixed: APPLY ? items.filter(item => !item.error).length : 0,
+        failed,
+      },
+      items,
+      ruleVersion: BLOG_RULES.version,
+    }),
+    snapshotPath,
+  };
+}
+
+async function phaseH2Fix(runId) {
+  const posts = await fetchPosts(true);
+  const snapshot = [];
+  const items = [];
+  let failed = 0;
+
+  for (let index = 0; index < posts.length; index++) {
+    const post = posts[index];
+    const content = post.content?.raw || post.content?.rendered || '';
+    const inline = extractInlineImageStats(content);
+    if (inline.hasH2) continue;
+
+    const fixed = fixMissingH2(content, post.title?.raw || post.title?.rendered);
+    if (!fixed.inserted || fixed.content === content) continue;
+
+    snapshot.push(buildPostSnapshot(post));
+    const entry = { id: post.id, slug: post.slug, patch: { h2: 'inserted' } };
+    if (APPLY) {
+      try {
+        await api('POST', `/wp/v2/posts/${post.id}`, { content: fixed.content });
+      } catch (error) {
+        failed++;
+        entry.error = error.message;
+      }
+    }
+    items.push(entry);
+    if ((index + 1) % 20 === 0) await sleep(500);
+    if (failed >= FAIL_THRESHOLD) break;
+  }
+
+  const snapshotPath = saveSnapshot(runId, PHASE, snapshot);
+  return {
+    report: buildReportSkeleton({
+      phase: PHASE,
+      mode: DRY_RUN ? 'dry-run' : 'apply',
+      scope: buildScope(),
+      summary: { scanned: posts.length, flagged: items.length, fixed: APPLY ? items.length - failed : 0, failed },
       items,
       ruleVersion: BLOG_RULES.version,
     }),
@@ -1727,7 +1883,7 @@ async function phaseMediaAuditForItems(media) {
 async function phaseMediaMetaFix(runId) {
   const posts = await fetchPosts(false);
   const parentTitleMap = new Map(posts.map(post => [post.id, cleanTitle(post.title?.raw || post.title?.rendered)]));
-  const media = filterByScope(await fetchMedia());
+  const media = await fetchMedia();
   const snapshot = [];
   const items = [];
   let failed = 0;
@@ -1778,7 +1934,7 @@ async function phaseMediaMetaFix(runId) {
 }
 
 async function phaseMediaFileFix(runId) {
-  const media = filterByScope(await fetchMedia());
+  const media = await fetchMedia();
   const mediaMap = new Map(media.map(item => [item.id, item]));
   const audit = await phaseMediaAuditForItems(media);
   const plans = audit.items
@@ -1917,8 +2073,8 @@ async function phaseVerify() {
   const progress = readJson(PROGRESS_FILE, {});
   const targetPhase = VERIFY_PHASE || progress.last_run?.phase;
   if (!targetPhase) throw new Error('No previous phase found for verify');
-  if (!['seo-fix', 'media-meta-fix', 'structure-fix', 'inline-image-gap-fix', 'featured-media-migration'].includes(targetPhase)) {
-    throw new Error(`Verify is currently implemented for seo-fix, media-meta-fix, structure-fix, inline-image-gap-fix, and featured-media-migration only, got ${targetPhase}`);
+  if (!['seo-fix', 'media-meta-fix', 'structure-fix', 'inline-image-gap-fix', 'inline-alt-fix', 'h2-fix', 'featured-media-migration'].includes(targetPhase)) {
+    throw new Error(`Verify is currently implemented for seo-fix, media-meta-fix, structure-fix, inline-image-gap-fix, inline-alt-fix, h2-fix, and featured-media-migration only, got ${targetPhase}`);
   }
 
   if (targetPhase === 'seo-fix') {
@@ -1953,6 +2109,38 @@ async function phaseVerify() {
     const audit = phasePostAuditForPosts(posts.filter(item => targetIds.has(item.id)));
     audit.phase = 'verify';
     audit.items = audit.items.filter(item => item.issues.includes(`inline_images_lt_${BLOG_RULES.post.minInlineImages}`));
+    audit.summary = {
+      scanned: targetIds.size,
+      flagged: audit.items.length,
+      fixed: targetIds.size - audit.items.length,
+      failed: 0,
+    };
+    return audit;
+  }
+
+  if (targetPhase === 'inline-alt-fix') {
+    const targetIds = new Set((progress.last_run?.items || []).map(item => item.id));
+    const posts = await fetchPostsByIds([...targetIds], true);
+    const audit = phasePostAuditForPosts(posts.filter(item => targetIds.has(item.id)));
+    audit.phase = 'verify';
+    audit.items = audit.items.filter(item =>
+      item.issues.some(issue => issue.startsWith('missing_inline_alt') || issue.startsWith('generic_inline_alt'))
+    );
+    audit.summary = {
+      scanned: targetIds.size,
+      flagged: audit.items.length,
+      fixed: targetIds.size - audit.items.length,
+      failed: 0,
+    };
+    return audit;
+  }
+
+  if (targetPhase === 'h2-fix') {
+    const targetIds = new Set((progress.last_run?.items || []).map(item => item.id));
+    const posts = await fetchPostsByIds([...targetIds], true);
+    const audit = phasePostAuditForPosts(posts.filter(item => targetIds.has(item.id)));
+    audit.phase = 'verify';
+    audit.items = audit.items.filter(item => item.issues.includes('missing_h2'));
     audit.summary = {
       scanned: targetIds.size,
       flagged: audit.items.length,
@@ -2014,6 +2202,48 @@ function buildManifest(runId, startedAt, report, reportPath, snapshotPath = null
   };
 }
 
+function runAutoAcceptance(reportPath) {
+  const runner = path.join(__dirname, 'run-openclaw-acceptance.sh');
+  const acceptance = {
+    enabled: AUTO_ACCEPTANCE,
+    attempted: false,
+    ok: false,
+    phase: PHASE,
+    report_path: reportPath,
+    task_path: null,
+    result_path: null,
+    error: null,
+  };
+
+  if (!AUTO_ACCEPTANCE || !APPLY || !OPENCLAW_ACCEPTANCE_PHASES.has(PHASE)) {
+    return acceptance;
+  }
+
+  acceptance.attempted = true;
+
+  try {
+    const output = execFileSync(runner, ['--phase', PHASE, '--report', reportPath], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    for (const line of output.split('\n')) {
+      const [key, ...rest] = line.trim().split('=');
+      if (!key || rest.length === 0) continue;
+      const value = rest.join('=').trim();
+      if (key === 'task_path') acceptance.task_path = value;
+      if (key === 'result_path') acceptance.result_path = value;
+      if (key === 'report_path') acceptance.report_path = value;
+    }
+    acceptance.ok = Boolean(acceptance.result_path);
+    return acceptance;
+  } catch (error) {
+    const stderr = error?.stderr ? String(error.stderr).trim() : '';
+    const stdout = error?.stdout ? String(error.stdout).trim() : '';
+    acceptance.error = stderr || stdout || error.message;
+    return acceptance;
+  }
+}
+
 async function run() {
   const runId = createRunId(PHASE);
   const outputPath = args.output || buildReportPath(runId, PHASE);
@@ -2022,6 +2252,7 @@ async function run() {
   let report;
   let snapshotPath = null;
   let artifactPath = null;
+  let acceptance = null;
 
   if (!IMPLEMENTED_PHASES.has(PHASE)) {
     report = buildReportSkeleton({
@@ -2048,6 +2279,14 @@ async function run() {
     artifactPath = result.artifactPath;
   } else if (PHASE === 'inline-image-gap-fix') {
     const result = await phaseInlineImageGapFix(runId);
+    report = result.report;
+    snapshotPath = result.snapshotPath;
+  } else if (PHASE === 'inline-alt-fix') {
+    const result = await phaseInlineAltFix(runId);
+    report = result.report;
+    snapshotPath = result.snapshotPath;
+  } else if (PHASE === 'h2-fix') {
+    const result = await phaseH2Fix(runId);
     report = result.report;
     snapshotPath = result.snapshotPath;
   } else if (PHASE === 'seo-audit') {
@@ -2079,22 +2318,42 @@ async function run() {
   }
 
   writeJson(outputPath, report);
-  const manifest = buildManifest(runId, startedAt, report, outputPath, snapshotPath, artifactPath);
+  acceptance = runAutoAcceptance(outputPath);
+  const manifest = {
+    ...buildManifest(runId, startedAt, report, outputPath, snapshotPath, artifactPath),
+    acceptance,
+  };
   const manifestPath = saveManifest(manifest);
+  const existingProgress = readJson(PROGRESS_FILE, {});
+  const phaseState = {
+    phase: PHASE,
+    mode: manifest.mode,
+    next_index: getResumeOffset() + (COUNT || report.summary.scanned || 0),
+    items: report.items,
+    manifest_path: manifestPath,
+    report_path: outputPath,
+    artifact_path: artifactPath,
+    acceptance,
+  };
   saveProgress({
-    last_run: {
-      phase: PHASE,
-      mode: manifest.mode,
-      next_index: getResumeOffset() + (COUNT || report.summary.scanned || 0),
-      items: report.items,
-      manifest_path: manifestPath,
-      report_path: outputPath,
-      artifact_path: artifactPath,
+    ...existingProgress,
+    last_run: phaseState,
+    phases: {
+      ...(existingProgress.phases || {}),
+      [PHASE]: phaseState,
     },
   });
 
   log(`Finished ${PHASE}: report=${outputPath}`);
-  console.log(JSON.stringify({ ok: true, phase: PHASE, report_path: outputPath, manifest_path: manifestPath, snapshot_path: snapshotPath, artifact_path: artifactPath }, null, 2));
+  console.log(JSON.stringify({
+    ok: true,
+    phase: PHASE,
+    report_path: outputPath,
+    manifest_path: manifestPath,
+    snapshot_path: snapshotPath,
+    artifact_path: artifactPath,
+    acceptance,
+  }, null, 2));
 }
 
 run().catch(error => {

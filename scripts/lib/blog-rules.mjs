@@ -22,6 +22,8 @@ export const BLOG_RULES = {
 export const APPLY_ALLOWED_PHASES = new Set([
   'seo-fix',
   'inline-image-gap-fix',
+  'inline-alt-fix',
+  'h2-fix',
   'media-meta-fix',
   'structure-fix',
   'link-fix',
@@ -38,6 +40,8 @@ export const IMPLEMENTED_PHASES = new Set([
   'inline-image-gap-analysis',
   'inline-image-gap-plan',
   'inline-image-gap-fix',
+  'inline-alt-fix',
+  'h2-fix',
   'seo-audit',
   'seo-fix',
   'post-audit',

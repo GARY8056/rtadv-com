@@ -1,15 +1,17 @@
 #!/bin/zsh
 # wp-upload-image.sh — Upload image to WordPress media library
 # Requires: COOKIE_FILE and WP_NONCE (from wp-auth.sh)
-# Usage: ./scripts/wp-upload-image.sh <image_file> <filename> [alt_text] [caption]
+# Usage: ./scripts/wp-upload-image.sh <image_file> <filename> [alt_text] [caption] [title] [description]
 # Outputs: MEDIA_ID and MEDIA_URL
 
 set -euo pipefail
 
-IMAGE_FILE="${1:?Usage: wp-upload-image.sh <image_file> <filename> [alt_text] [caption]}"
+IMAGE_FILE="${1:?Usage: wp-upload-image.sh <image_file> <filename> [alt_text] [caption] [title] [description]}"
 FILENAME="${2:?Missing filename (e.g. paper-box-hero.png)}"
 ALT_TEXT="${3:-}"
 CAPTION="${4:-}"
+IMG_TITLE="${5:-}"
+IMG_DESC="${6:-}"
 
 if [ ! -f "$IMAGE_FILE" ]; then
   echo "ERROR: Image file not found: $IMAGE_FILE" >&2
@@ -46,15 +48,17 @@ fi
 
 MEDIA_URL=$(echo "$RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('source_url',''))" 2>/dev/null)
 
-# Set alt text and caption if provided
-if [ -n "$ALT_TEXT" ] || [ -n "$CAPTION" ]; then
+# Set alt text, caption, title, description if provided
+if [ -n "$ALT_TEXT" ] || [ -n "$CAPTION" ] || [ -n "$IMG_TITLE" ] || [ -n "$IMG_DESC" ]; then
   UPDATE_PAYLOAD=$(python3 -c "
 import json, sys
 d = {}
 if sys.argv[1]: d['alt_text'] = sys.argv[1]
 if sys.argv[2]: d['caption'] = sys.argv[2]
+if sys.argv[3]: d['title'] = sys.argv[3]
+if sys.argv[4]: d['description'] = sys.argv[4]
 print(json.dumps(d, ensure_ascii=False))
-" "$ALT_TEXT" "$CAPTION")
+" "$ALT_TEXT" "$CAPTION" "$IMG_TITLE" "$IMG_DESC")
   curl -s -b "$COOKIE_FILE" \
     -X POST "https://www.rtadv.com/wp-json/wp/v2/media/$MEDIA_ID" \
     -H "X-WP-Nonce: $WP_NONCE" \
